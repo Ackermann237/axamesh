@@ -1,0 +1,202 @@
+# Framework de Data Quality - Règles par domaine
+# Niveaux : group_mandatory (imposé), domain_specific (par domaine), entity_local (par entité)
+
+# ============================================================
+# DOMAINE : CUSTOMER
+# ============================================================
+customer:
+  group_mandatory:
+    - name: "customer_completeness_id"
+      category: "Completeness"
+      description: "customer_id ne doit jamais être NULL"
+      sql: "SELECT COUNT(*) FROM {table} WHERE customer_id IS NULL"
+      warn_threshold: 0.0
+      fail_threshold: 0.001
+
+    - name: "customer_completeness_email"
+      category: "Completeness"
+      description: "email ne doit pas être NULL sur plus de 5% des lignes"
+      sql: "SELECT COUNT(*) FROM {table} WHERE email IS NULL"
+      warn_threshold: 0.02
+      fail_threshold: 0.05
+
+    - name: "customer_uniqueness_id"
+      category: "Uniqueness"
+      description: "customer_id doit être unique"
+      sql: >
+        SELECT COALESCE(SUM(cnt - 1), 0) FROM (
+          SELECT customer_id, COUNT(*) as cnt
+          FROM {table}
+          GROUP BY customer_id
+          HAVING COUNT(*) > 1
+        ) t
+      warn_threshold: 0.0
+      fail_threshold: 0.001
+
+    - name: "customer_freshness"
+      category: "Freshness"
+      description: "Des données doivent exister pour les 7 derniers jours"
+      sql: >
+        SELECT CASE
+          WHEN MAX(CAST(_ingested_at AS DATE)) < CURRENT_DATE - INTERVAL '7' DAY
+          THEN 1 ELSE 0
+        END FROM {table}
+      warn_threshold: 0.0
+      fail_threshold: 0.5
+
+  domain_specific:
+    - name: "customer_email_format"
+      category: "BusinessLogic"
+      description: "Format email valide (doit contenir @)"
+      sql: "SELECT COUNT(*) FROM {table} WHERE email IS NOT NULL AND email NOT LIKE '%@%'"
+      warn_threshold: 0.01
+      fail_threshold: 0.05
+
+    - name: "customer_dob_range"
+      category: "Range"
+      description: "Date de naissance entre 1900 et aujourd'hui"
+      sql: >
+        SELECT COUNT(*) FROM {table}
+        WHERE date_of_birth < '1900-01-01'
+        OR date_of_birth > CURRENT_DATE
+      warn_threshold: 0.0
+      fail_threshold: 0.01
+
+    - name: "customer_kyc_expired"
+      category: "BusinessLogic"
+      description: "Taux de KYC expiré (monitoring, pas bloquant)"
+      sql: "SELECT COUNT(*) FROM {table} WHERE kyc_status = 'EXPIRED'"
+      warn_threshold: 0.10
+      fail_threshold: 0.30
+
+    - name: "customer_country_coherence"
+      category: "BusinessLogic"
+      description: "Le pays du client doit correspondre à l'entité"
+      sql: >
+        SELECT COUNT(*) FROM {table}
+        WHERE country != '{expected_country}'
+      warn_threshold: 0.02
+      fail_threshold: 0.10
+
+# ============================================================
+# DOMAINE : CLAIMS (Sinistres)
+# ============================================================
+claims:
+  group_mandatory:
+    - name: "claims_completeness_id"
+      category: "Completeness"
+      description: "claim_id ne doit jamais être NULL"
+      sql: "SELECT COUNT(*) FROM {table} WHERE claim_id IS NULL"
+      warn_threshold: 0.0
+      fail_threshold: 0.001
+
+    - name: "claims_uniqueness_id"
+      category: "Uniqueness"
+      description: "claim_id doit être unique"
+      sql: >
+        SELECT COALESCE(SUM(cnt - 1), 0) FROM (
+          SELECT claim_id, COUNT(*) as cnt
+          FROM {table}
+          GROUP BY claim_id
+          HAVING COUNT(*) > 1
+        ) t
+      warn_threshold: 0.0
+      fail_threshold: 0.001
+
+  domain_specific:
+    - name: "claims_date_coherence"
+      category: "BusinessLogic"
+      description: "La date de déclaration doit être >= date du sinistre"
+      sql: >
+        SELECT COUNT(*) FROM {table}
+        WHERE declaration_date < incident_date
+      warn_threshold: 0.0
+      fail_threshold: 0.01
+
+    - name: "claims_amount_positive"
+      category: "Range"
+      description: "Le montant du sinistre doit être positif"
+      sql: "SELECT COUNT(*) FROM {table} WHERE claim_amount <= 0"
+      warn_threshold: 0.0
+      fail_threshold: 0.01
+
+    - name: "claims_amount_extreme"
+      category: "Range"
+      description: "Montant sinistre anormalement élevé (> 500 000 EUR)"
+      sql: "SELECT COUNT(*) FROM {table} WHERE claim_amount_eur > 500000"
+      warn_threshold: 0.001
+      fail_threshold: 0.01
+
+    - name: "claims_status_valid"
+      category: "BusinessLogic"
+      description: "Statut sinistre dans les valeurs acceptées"
+      sql: >
+        SELECT COUNT(*) FROM {table}
+        WHERE status NOT IN ('OPEN', 'IN_REVIEW', 'CLOSED', 'REJECTED', 'PAID')
+      warn_threshold: 0.0
+      fail_threshold: 0.001
+
+# ============================================================
+# DOMAINE : UNDERWRITING (Polices)
+# ============================================================
+policies:
+  group_mandatory:
+    - name: "policies_completeness_id"
+      category: "Completeness"
+      description: "policy_id ne doit jamais être NULL"
+      sql: "SELECT COUNT(*) FROM {table} WHERE policy_id IS NULL"
+      warn_threshold: 0.0
+      fail_threshold: 0.001
+
+    - name: "policies_uniqueness_id"
+      category: "Uniqueness"
+      description: "policy_id doit être unique"
+      sql: >
+        SELECT COALESCE(SUM(cnt - 1), 0) FROM (
+          SELECT policy_id, COUNT(*) as cnt
+          FROM {table}
+          GROUP BY policy_id
+          HAVING COUNT(*) > 1
+        ) t
+      warn_threshold: 0.0
+      fail_threshold: 0.001
+
+  domain_specific:
+    - name: "policies_premium_positive"
+      category: "Range"
+      description: "La prime annuelle doit être positive"
+      sql: "SELECT COUNT(*) FROM {table} WHERE annual_premium <= 0"
+      warn_threshold: 0.0
+      fail_threshold: 0.01
+
+    - name: "policies_date_coherence"
+      category: "BusinessLogic"
+      description: "La date de fin doit être après la date de début"
+      sql: >
+        SELECT COUNT(*) FROM {table}
+        WHERE end_date <= start_date
+      warn_threshold: 0.0
+      fail_threshold: 0.001
+
+    - name: "policies_product_type_valid"
+      category: "BusinessLogic"
+      description: "Type de produit dans les valeurs acceptées"
+      sql: >
+        SELECT COUNT(*) FROM {table}
+        WHERE product_type NOT IN (
+          'AUTO', 'HOME', 'HEALTH', 'LIFE', 'TRAVEL', 'LIABILITY'
+        )
+      warn_threshold: 0.0
+      fail_threshold: 0.001
+
+    - name: "policies_active_customer"
+      category: "Referential"
+      description: "Chaque police doit avoir un customer_id valide"
+      sql: >
+        SELECT COUNT(*) FROM {table} p
+        WHERE NOT EXISTS (
+          SELECT 1 FROM {customer_table} c
+          WHERE c.customer_id = p.customer_id
+        )
+      warn_threshold: 0.0
+      fail_threshold: 0.01

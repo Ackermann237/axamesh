@@ -1,0 +1,37 @@
+# Configuration des entités AXA fictives
+entities:
+  axa_france:
+    name: "AXA France"
+    country: "France"
+    currency: "EUR"
+    locale: "fr_FR"
+    timezone: "Europe/Paris"
+    nb_customers: 5000
+    nb_claims: 3000
+    nb_policies: 8000
+
+  axa_uk:
+    name: "AXA UK"
+    country: "United Kingdom"
+    currency: "GBP"
+    locale: "en_GB"
+    timezone: "Europe/London"
+    nb_customers: 4000
+    nb_claims: 2500
+    nb_policies: 6500
+
+  axa_italy:
+    name: "AXA Italy"
+    country: "Italy"
+    currency: "EUR"
+    locale: "it_IT"
+    timezone: "Europe/Rome"
+    nb_customers: 3500
+    nb_claims: 2000
+    nb_policies: 5500
+
+# Taux de change vers EUR (pour normalisation)
+fx_rates:
+  EUR: 1.0
+  GBP: 1.17
+  USD: 0.92

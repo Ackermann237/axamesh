@@ -1,0 +1,53 @@
+# ──────────────────────────────────────────────────────────────
+# AXAMesh — .gitignore
+# ──────────────────────────────────────────────────────────────
+
+# ── Environnement Python ──────────────────────────────────────
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# ── Variables d'environnement (JAMAIS sur GitHub) ─────────────
+.env
+.env.*
+!.env.example
+
+# ── Données sensibles (JAMAIS sur GitHub) ─────────────────────
+data/bronze/
+data/silver/
+data/gold/*.csv
+data/gold/*.db
+data/vector_db/
+
+# ── PowerBI ───────────────────────────────────────────────────
+*.pbix
+*.pbip
+
+# ── IDE ───────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.user
+
+# ── OS ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Logs ──────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Cache sentence-transformers / ChromaDB ────────────────────
+.cache/
+*.bin
+*.pt
+sentence_transformers/
